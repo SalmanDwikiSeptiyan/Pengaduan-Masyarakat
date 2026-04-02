@@ -1,74 +1,60 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Report;
 use Illuminate\Http\Request;
 
-class AdminReportController extends Controller
+class ReportController extends Controller
 {
     /**
-     * GET /api/admin/reports
-     * Admin melihat semua laporan.
+     * Daftar semua laporan.
      */
     public function index()
     {
         $reports = Report::with('user')->latest()->get();
 
-        return response()->json([
-            'message' => 'Semua laporan',
-            'reports' => $reports,
-        ]);
+        return view('admin.reports.index', compact('reports'));
     }
 
     /**
-     * GET /api/admin/reports/{id}
-     * Admin melihat detail laporan.
+     * Detail laporan.
      */
     public function show($id)
     {
         $report = Report::with('user')->findOrFail($id);
 
-        return response()->json([
-            'message' => 'Detail laporan',
-            'report'  => $report,
-        ]);
+        return view('admin.reports.show', compact('report'));
     }
 
     /**
-     * PUT /api/admin/reports/{id}
-     * Admin memperbarui status laporan (misal: Menunggu -> Diproses).
+     * Update status laporan (Menunggu -> Diproses).
      */
-    public function update(Request $request, $id)
+    public function updateStatus(Request $request, $id)
     {
         $request->validate([
             'status' => 'required|in:Menunggu,Diproses,Selesai',
         ]);
 
         $report = Report::findOrFail($id);
-        $report->update([
-            'status' => $request->status,
-        ]);
+        $report->update(['status' => $request->status]);
 
-        // Kirim notifikasi ke user pemilik laporan
-        Notification::create([  
+        // Buat notifikasi otomatis
+        Notification::create([
             'user_id'   => $report->user_id,
             'report_id' => $report->id,
             'message'   => 'Status laporan #' . $report->id . ' diubah menjadi ' . $request->status,
             'is_read'   => false,
         ]);
 
-        return response()->json([
-            'message' => 'Status laporan berhasil diperbarui',
-            'report'  => $report->load('user'),
-        ]);
+        return redirect()->route('admin.reports.show', $id)
+            ->with('success', 'Status laporan berhasil diperbarui menjadi ' . $request->status);
     }
 
     /**
-     * POST /api/admin/reports/{id}/complete
-     * Admin menyelesaikan laporan (upload foto_after, set status Selesai).
+     * Selesaikan laporan dengan upload foto after.
      */
     public function complete(Request $request, $id)
     {
@@ -85,17 +71,15 @@ class AdminReportController extends Controller
             'status'     => 'Selesai',
         ]);
 
-        // Kirim notifikasi ke user pemilik laporan
+        // Buat notifikasi otomatis
         Notification::create([
             'user_id'   => $report->user_id,
             'report_id' => $report->id,
-            'message'   => 'Laporan #' . $report->id . ' telah diselesaikan',
+            'message'   => 'Laporan Anda telah selesai ditangani. Terima kasih atas laporan Anda.',
             'is_read'   => false,
         ]);
 
-        return response()->json([
-            'message' => 'Laporan berhasil diselesaikan',
-            'report'  => $report->load('user'),
-        ]);
+        return redirect()->route('admin.reports.show', $id)
+            ->with('success', 'Laporan berhasil diselesaikan!');
     }
 }
