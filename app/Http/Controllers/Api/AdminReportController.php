@@ -53,7 +53,7 @@ class AdminReportController extends Controller
         ]);
 
         // Kirim notifikasi ke user pemilik laporan
-        Notification::create([
+        Notification::create([  
             'user_id'   => $report->user_id,
             'report_id' => $report->id,
             'message'   => 'Status laporan #' . $report->id . ' diubah menjadi ' . $request->status,

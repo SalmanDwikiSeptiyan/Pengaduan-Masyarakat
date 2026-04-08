@@ -14,9 +14,14 @@ class IsAdmin
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json([
-                'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
-            ], 403);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Akses ditolak. Hanya admin yang diizinkan.',
+                ], 403);
+            }
+
+            return redirect()->route('admin.login')
+                ->withErrors(['email' => 'Akses ditolak. Hanya admin yang diizinkan.']);
         }
 
         return $next($request);
