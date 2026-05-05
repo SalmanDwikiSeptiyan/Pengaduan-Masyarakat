@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RekapController extends Controller
 {
@@ -23,7 +22,21 @@ class RekapController extends Controller
         $selesai      = Report::where('status', 'Selesai')->count();
 
         $chartData = $this->getChartData($period);
-        $reports   = Report::with('user')->latest()->get();
+
+        // Apply filters to preview table
+        $query = Report::with('user')->latest();
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+        if ($request->filled('status') && $request->status !== 'Semua') {
+            $query->where('status', $request->status);
+        }
+
+        $reports = $query->get();
 
         return view('admin.rekap', compact(
             'totalReports', 'menunggu', 'diproses', 'selesai',
@@ -32,44 +45,36 @@ class RekapController extends Controller
     }
 
     /**
-     * Export tabel laporan ke CSV.
+     * Export laporan sebagai halaman cetak (print-friendly report).
      */
-    public function exportCsv(): StreamedResponse
+    public function exportReport(Request $request)
     {
-        $reports = Report::with('user')->latest()->get();
+        $query = Report::with('user')->latest();
 
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="rekap_laporan_' . now()->format('Y-m-d') . '.csv"',
-        ];
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+        if ($request->filled('status') && $request->status !== 'Semua') {
+            $query->where('status', $request->status);
+        }
 
-        return response()->stream(function () use ($reports) {
-            $handle = fopen('php://output', 'w');
+        $reports = $query->get();
 
-            // BOM for UTF-8
-            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        $totalReports = $reports->count();
+        $menunggu     = $reports->where('status', 'Menunggu')->count();
+        $diproses     = $reports->where('status', 'Diproses')->count();
+        $selesai      = $reports->where('status', 'Selesai')->count();
 
-            // Header row
-            fputcsv($handle, [
-                'ID', 'Nama Pelapor', 'Email', 'Deskripsi',
-                'Latitude', 'Longitude', 'Status', 'Tanggal Dibuat'
-            ]);
-
-            foreach ($reports as $report) {
-                fputcsv($handle, [
-                    $report->id,
-                    $report->user->name,
-                    $report->user->email,
-                    $report->deskripsi,
-                    $report->latitude,
-                    $report->longitude,
-                    $report->status,
-                    $report->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($handle);
-        }, 200, $headers);
+        return view('admin.rekap-print', compact(
+            'reports', 'totalReports', 'menunggu', 'diproses', 'selesai'
+        ))->with([
+            'startDate' => $request->start_date,
+            'endDate'   => $request->end_date,
+            'status'    => $request->status ?? 'Semua',
+        ]);
     }
 
     private function getChartData(string $period): array
