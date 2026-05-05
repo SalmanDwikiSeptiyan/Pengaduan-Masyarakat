@@ -51,7 +51,7 @@ Route::prefix('admin')->group(function () {
 
         // Rekap & Export
         Route::get('/rekap', [RekapController::class, 'index'])->name('admin.rekap');
-        Route::get('/rekap/export-csv', [RekapController::class, 'exportCsv'])->name('admin.rekap.csv');
+        Route::get('/rekap/export-report', [RekapController::class, 'exportReport'])->name('admin.rekap.report');
     });
 });
 

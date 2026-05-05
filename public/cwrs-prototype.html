@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CWRS Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg-deep: #0F172A;
+            --bg-surface: #1E293B;
+            --bg-surface-hover: #334155;
+            --border-color: #334155;
+            
+            --accent-green: #22C55E;
+            --accent-green-light: rgba(34, 197, 94, 0.15);
+            --accent-blue: #3B82F6;
+            --accent-blue-light: rgba(59, 130, 246, 0.15);
+            --accent-yellow: #EAB308;
+            --accent-yellow-light: rgba(234, 179, 8, 0.15);
+            --accent-purple: #A855F7;
+            --accent-purple-light: rgba(168, 85, 247, 0.15);
+            
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            
+            --font-family: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Utility */
+        .flex { display: flex; }
+        .flex-col { display: flex; flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-1 { gap: 0.25rem; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .font-semibold { font-weight: 600; }
+        .font-medium { font-weight: 500; }
+        .text-secondary { color: var(--text-secondary); }
+        .text-muted { color: var(--text-muted); }
+        .text-green { color: var(--accent-green); }
+        .text-yellow { color: var(--accent-yellow); }
+        .text-blue { color: var(--accent-blue); }
+        .mt-4 { margin-top: 1rem; }
+
+        /* Tag Colors */
+        .tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .tag-plastic { color: var(--accent-green); background: var(--accent-green-light); }
+        .tag-organic { color: #4ADE80; background: rgba(74, 222, 128, 0.15); }
+        .tag-glass { color: var(--accent-purple); background: var(--accent-purple-light); }
+        .tag-paper { color: var(--accent-blue); background: var(--accent-blue-light); }
+        .tag-metal { color: var(--accent-yellow); background: var(--accent-yellow-light); }
+
+        .tag-waiting { color: var(--accent-yellow); background: var(--accent-yellow-light); }
+        .tag-processing { color: var(--accent-blue); background: var(--accent-blue-light); }
+        .tag-completed { color: var(--accent-green); background: var(--accent-green-light); }
+
+        /* Dot indicator */
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .dot-waiting { background: var(--accent-yellow); }
+        .dot-processing { background: var(--accent-blue); }
+        .dot-completed { background: var(--accent-green); }
+
+        /* Layout */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-deep);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            flex-shrink: 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 32px 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sidebar Elements */
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+        .logo-icon {
+            color: var(--accent-green);
+        }
+        .logo-text h1 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .logo-text p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.2;
+            margin-top: 2px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: var(--bg-surface);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            border-left: 3px solid var(--accent-green);
+            border-radius: 0 8px 8px 0;
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, transparent 100%);
+        }
+
+        .nav-item i { width: 20px; height: 20px; }
+
+        .sidebar-footer {
+            margin-top: auto;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background-color: var(--bg-surface);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            overflow: hidden;
+        }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info h4 { font-size: 13px; font-weight: 500; }
+        .user-info p { font-size: 11px; color: var(--text-muted); }
+        .copyright { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+        /* Dashboard Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        .header-title h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+        .header-title p { color: var(--text-secondary); font-size: 14px; }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-greeting { color: var(--text-secondary); font-size: 14px; }
+        .notification-btn {
+            position: relative;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--accent-green);
+            color: #fff;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: 600;
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .metric-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .metric-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .metric-title { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .metric-icon { color: var(--text-muted); }
+        .metric-value { font-size: 28px; font-weight: 600; }
+        .metric-change { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+        .metric-change.positive { color: var(--accent-green); }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .card-title { font-weight: 600; font-size: 15px; }
+        .filter-dropdown {
+            background: var(--bg-deep);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        
+        .donut-container { position: relative; height: 220px; display: flex; justify-content: center;}
+        .donut-inner-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .donut-inner-text h3 { font-size: 20px; font-weight: 600; }
+        .donut-inner-text p { font-size: 11px; color: var(--text-secondary); }
+
+        .legend { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 12px;}
+        .legend-label { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+        .legend-value { color: var(--text-primary); }
+
+        .line-chart-container { height: 250px; width: 100%; }
+
+        /* Table Section */
+        .table-card { flex-grow: 1; }
+        .table-controls { display: flex; gap: 12px; }
+        .search-input {
+            background: var(--bg-deep);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px 8px 36px;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 250px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 10px center;
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            text-align: left; 
+            padding: 12px 16px; 
+            color: var(--text-secondary); 
+            font-weight: 500; 
+            font-size: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        td { 
+            padding: 16px; 
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5); 
+            font-size: 13px;
+        }
+        tr:hover td { background-color: rgba(51, 65, 85, 0.3); }
+        .location-info { display: flex; flex-direction: column; gap: 2px; }
+        .location-city { font-size: 11px; color: var(--text-muted); }
+        .date-info { display: flex; flex-direction: column; gap: 2px; }
+        .time-info { font-size: 11px; color: var(--text-muted); }
+        
+        .action-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; }
+        .action-btn:hover { color: var(--text-primary); }
+
+        /* Report Detail View (Screen 2) */
+        #screen-detail { display: none; }
+        
+        .detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .back-btn {
+            display: flex; align-items: center; gap: 8px;
+            color: var(--text-secondary); background: none; border: none; cursor: pointer;
+            font-size: 14px; transition: color 0.2s;
+        }
+        .back-btn:hover { color: var(--text-primary); }
+        .btn-group { display: flex; gap: 8px; }
+        .btn {
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 8px 16px; border-radius: 6px;
+            font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
+        .btn:hover { background: var(--bg-surface-hover); }
+        .btn-icon { padding: 8px; }
+
+        .report-title-section { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .report-tags { display: flex; gap: 12px; margin-bottom: 12px; }
+        .report-id { color: var(--text-secondary); font-family: monospace; font-size: 14px; }
+        .report-title { font-size: 24px; font-weight: 600; margin-bottom: 12px; }
+        .report-meta { display: flex; flex-direction: column; gap: 8px; color: var(--text-secondary); font-size: 13px; }
+        .report-meta-item { display: flex; align-items: center; gap: 8px; }
+        
+        .report-author-date { text-align: right; font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px; align-items: flex-end;}
+        .report-author-date span { color: var(--text-primary); }
+        
+        .detail-grid { display: grid; grid-template-columns: 1fr 300px; gap: 24px; }
+        
+        .map-container { height: 260px; border-radius: 8px; overflow: hidden; margin-bottom: 24px; border: 1px solid var(--border-color); position: relative;}
+        
+        /* Custom map markers */
+        .leaflet-container { background: #1a2333; }
+
+        .section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+        
+        .description-text { color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; font-size: 14px;}
+        
+        .photos-grid { display: flex; gap: 12px; margin-bottom: 32px; }
+        .photo-item { 
+            width: 80px; height: 80px; border-radius: 8px; overflow: hidden; 
+            border: 1px solid var(--border-color); position: relative;
+        }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+        .add-photo {
+            width: 80px; height: 80px; border-radius: 8px; border: 1px dashed var(--text-muted);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--text-muted); cursor: pointer; font-size: 11px; gap: 4px;
+        }
+        .add-photo:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 20px; display: flex; flex-direction: column; gap: 20px;}
+        .timeline::before {
+            content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px;
+            width: 2px; background: var(--border-color);
+        }
+        .timeline-item { position: relative; }
+        .timeline-icon {
+            position: absolute; left: -26px; top: 0; width: 14px; height: 14px;
+            border-radius: 50%; border: 2px solid var(--bg-deep);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2;
+        }
+        .timeline-icon.yellow { background: var(--accent-yellow); }
+        .timeline-icon.blue { background: var(--accent-blue); }
+        .timeline-icon.gray { background: var(--text-muted); }
+        
+        .timeline-content { display: flex; justify-content: space-between; }
+        .timeline-text h4 { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+        .timeline-text p { font-size: 12px; color: var(--text-secondary); }
+        .timeline-user { font-size: 12px; color: var(--text-secondary); }
+
+        /* Status Control */
+        .status-control {
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .status-option {
+            padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: all 0.2s;
+            position: relative;
+        }
+        .status-option.active { border-color: var(--accent-yellow); background: rgba(234, 179, 8, 0.05); }
+        .status-option.active.processing { border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); }
+        .status-option.active.completed { border-color: var(--accent-green); background: rgba(34, 197, 94, 0.05); }
+        
+        .status-option-header { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px;}
+        .status-option-desc { font-size: 11px; color: var(--text-muted); margin-left: 24px;}
+        .status-check { position: absolute; right: 16px; top: 12px; color: var(--text-primary); display: none;}
+        .status-option.active .status-check { display: block; }
+
+        /* Detail Data Grid */
+        .data-grid { display: flex; flex-direction: column; gap: 16px; }
+        .data-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px;}
+        .data-label { color: var(--text-secondary); }
+        .data-value { display: flex; align-items: center; gap: 6px; font-weight: 500;}
+
+        /* Utilities for JS */
+        .cursor-pointer { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <i data-lucide="leaf" class="logo-icon"></i>
+            <div class="logo-text">
+                <h1>CWRS</h1>
+                <p>Community Waste<br>Reporting System</p>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <a class="nav-item active" onclick="showDashboard()">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-item">
+                <i data-lucide="file-text"></i>
+                <span>Reports</span>
+            </a>
+            <a class="nav-item">
+                <i data-lucide="map"></i>
+                <span>Map</span>
+            </a>
+            <a class="nav-item">
+                <i data-lucide="users"></i>
+                <span>Users</span>
+            </a>
+            <a class="nav-item">
+                <i data-lucide="bar-chart-2"></i>
+                <span>Analytics</span>
+            </a>
+            <a class="nav-item">
+                <i data-lucide="grid"></i>
+                <span>Categories</span>
+            </a>
+            <a class="nav-item">
+                <i data-lucide="bell"></i>
+                <span>Notifications</span>
+            </a>
+            <a class="nav-item" style="margin-top: auto;">
+                <i data-lucide="settings"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="https://i.pravatar.cc/150?img=11" alt="Admin User">
+                </div>
+                <div class="user-info">
+                    <h4>Admin User</h4>
+                    <p>Administrator</p>
+                </div>
+                <i data-lucide="chevron-down" style="margin-left: auto; width: 16px; height: 16px; color: var(--text-muted)"></i>
+            </div>
+            <p class="copyright">
+                <i data-lucide="leaf" style="width: 10px; height: 10px; display: inline-block; color: var(--accent-green)"></i>
+                © 2025 CWRS. All rights reserved.
+            </p>
+        </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD (Screen 1) -->
+    <main class="main-content" id="screen-dashboard">
+        <header class="header">
+            <div class="header-title">
+                <h2>Dashboard</h2>
+                <p>Overview of community waste reports and activity.</p>
+            </div>
+            <div class="header-actions">
+                <span class="header-greeting">Good morning, Admin 👋</span>
+                <button class="notification-btn">
+                    <i data-lucide="bell" style="width: 18px; height: 18px;"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-top">
+                    <span class="metric-title">Total Reports</span>
+                    <i data-lucide="clipboard-list" class="metric-icon"></i>
+                </div>
+                <div class="metric-value">1,284</div>
+                <div class="metric-change positive">
+                    <i data-lucide="arrow-up" style="width: 12px; height: 12px;"></i>
+                    12.5% vs last month
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-top">
+                    <span class="metric-title">Pending Reports</span>
+                    <i data-lucide="clock" class="metric-icon"></i>
+                </div>
+                <div class="metric-value">312</div>
+                <div class="metric-change positive" style="color: var(--accent-yellow)">
+                    <i data-lucide="arrow-up" style="width: 12px; height: 12px;"></i>
+                    8.1% vs last month
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-top">
+                    <span class="metric-title">Completed Reports</span>
+                    <i data-lucide="check-circle" class="metric-icon"></i>
+                </div>
+                <div class="metric-value">842</div>
+                <div class="metric-change positive">
+                    <i data-lucide="arrow-up" style="width: 12px; height: 12px;"></i>
+                    18.7% vs last month
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-top">
+                    <span class="metric-title">Active Users</span>
+                    <i data-lucide="user" class="metric-icon"></i>
+                </div>
+                <div class="metric-value">645</div>
+                <div class="metric-change positive">
+                    <i data-lucide="arrow-up" style="width: 12px; height: 12px;"></i>
+                    14.2% vs last month
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <!-- Donut Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Report Distribution</span>
+                    <div class="filter-dropdown">
+                        This Month <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    </div>
+                </div>
+                <div class="flex gap-6 items-center">
+                    <div class="donut-container" style="width: 160px; height: 160px; margin: 0 auto;">
+                        <canvas id="donutChart"></canvas>
+                        <div class="donut-inner-text">
+                            <h3>1,284</h3>
+                            <p>Total</p>
+                        </div>
+                    </div>
+                    <div class="legend" style="width: 130px;">
+                        <div class="legend-item">
+                            <span class="legend-label"><span class="dot dot-completed"></span> Plastic</span>
+                            <span class="legend-value text-secondary">42% (540)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-label"><span class="dot" style="background:#4ADE80"></span> Organic</span>
+                            <span class="legend-value text-secondary">25% (320)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-label"><span class="dot dot-processing"></span> Paper</span>
+                            <span class="legend-value text-secondary">15% (192)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-label"><span class="dot" style="background:#A855F7"></span> Glass</span>
+                            <span class="legend-value text-secondary">10% (128)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-label"><span class="dot dot-waiting"></span> Metal</span>
+                            <span class="legend-value text-secondary">8% (104)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Reporting Trends</span>
+                    <div class="filter-dropdown">
+                        This Month <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    </div>
+                </div>
+                <div class="line-chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+                <div class="flex gap-4 items-center mt-4" style="font-size: 12px; color: var(--text-secondary); padding-left: 10px;">
+                    <div class="flex items-center gap-2"><span class="dot dot-completed"></span> Reports</div>
+                    <div class="flex items-center gap-2"><span class="dot" style="background:var(--border-color)"></span> Resolved</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card table-card">
+            <div class="card-header">
+                <span class="card-title">Recent Reports</span>
+                <div class="table-controls">
+                    <input type="text" class="search-input" placeholder="Search reports...">
+                    <div class="filter-dropdown">
+                        All Categories <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    </div>
+                    <div class="filter-dropdown">
+                        All Statuses <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    </div>
+                    <button class="btn btn-icon"><i data-lucide="sliders-horizontal" style="width: 16px; height: 16px;"></i></button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Location</th>
+                        <th>Category</th>
+                        <th>Reporter</th>
+                        <th>Status</th>
+                        <th>Reported At</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="cursor-pointer" onclick="showDetail()">
+                        <td><span style="color:var(--text-secondary)">#</span>RPT-1284</td>
+                        <td>
+                            <div class="location-info">
+                                <span>Greenwood Park</span>
+                                <span class="location-city">District 12, Springfield</span>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-plastic">Plastic</span></td>
+                        <td>John Doe</td>
+                        <td><span class="tag tag-waiting"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> Waiting</span></td>
+                        <td>
+                            <div class="date-info">
+                                <span>May 31, 2025</span>
+                                <span class="time-info">08:45 AM</span>
+                            </div>
+                        </td>
+                        <td><button class="action-btn"><i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i></button></td>
+                    </tr>
+                    <tr class="cursor-pointer" onclick="showDetail()">
+                        <td><span style="color:var(--text-secondary)">#</span>RPT-1283</td>
+                        <td>
+                            <div class="location-info">
+                                <span>Maple Street</span>
+                                <span class="location-city">District 8, Springfield</span>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-organic">Organic</span></td>
+                        <td>Sarah Miller</td>
+                        <td><span class="tag tag-processing"><i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Processing</span></td>
+                        <td>
+                            <div class="date-info">
+                                <span>May 31, 2025</span>
+                                <span class="time-info">07:32 AM</span>
+                            </div>
+                        </td>
+                        <td><button class="action-btn"><i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i></button></td>
+                    </tr>
+                    <tr class="cursor-pointer" onclick="showDetail()">
+                        <td><span style="color:var(--text-secondary)">#</span>RPT-1282</td>
+                        <td>
+                            <div class="location-info">
+                                <span>River Bank Road</span>
+                                <span class="location-city">District 5, Springfield</span>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-glass">Glass</span></td>
+                        <td>Mike Johnson</td>
+                        <td><span class="tag tag-waiting"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> Waiting</span></td>
+                        <td>
+                            <div class="date-info">
+                                <span>May 30, 2025</span>
+                                <span class="time-info">11:15 PM</span>
+                            </div>
+                        </td>
+                        <td><button class="action-btn"><i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i></button></td>
+                    </tr>
+                    <tr class="cursor-pointer" onclick="showDetail()">
+                        <td><span style="color:var(--text-secondary)">#</span>RPT-1281</td>
+                        <td>
+                            <div class="location-info">
+                                <span>Oak Avenue</span>
+                                <span class="location-city">District 3, Springfield</span>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-paper">Paper</span></td>
+                        <td>Emily Davis</td>
+                        <td><span class="tag tag-completed"><i data-lucide="check-circle" style="width: 12px; height: 12px;"></i> Completed</span></td>
+                        <td>
+                            <div class="date-info">
+                                <span>May 30, 2025</span>
+                                <span class="time-info">06:20 PM</span>
+                            </div>
+                        </td>
+                        <td><button class="action-btn"><i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i></button></td>
+                    </tr>
+                    <tr class="cursor-pointer" onclick="showDetail()">
+                        <td><span style="color:var(--text-secondary)">#</span>RPT-1280</td>
+                        <td>
+                            <div class="location-info">
+                                <span>Hilltop Area</span>
+                                <span class="location-city">District 7, Springfield</span>
+                            </div>
+                        </td>
+                        <td><span class="tag tag-metal">Metal</span></td>
+                        <td>David Wilson</td>
+                        <td><span class="tag tag-processing"><i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Processing</span></td>
+                        <td>
+                            <div class="date-info">
+                                <span>May 30, 2025</span>
+                                <span class="time-info">02:10 PM</span>
+                            </div>
+                        </td>
+                        <td><button class="action-btn"><i data-lucide="more-vertical" style="width: 16px; height: 16px;"></i></button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- REPORT DETAIL (Screen 2) -->
+    <main class="main-content" id="screen-detail">
+        <div class="detail-header">
+            <button class="back-btn" onclick="showDashboard()">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                Back to Reports
+            </button>
+            <div class="btn-group">
+                <button class="btn">
+                    <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i> Edit Report
+                </button>
+                <button class="btn btn-icon">
+                    <i data-lucide="more-horizontal" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="report-title-section">
+            <div>
+                <div class="report-tags">
+                    <span class="report-id">#RPT-1284</span>
+                    <span class="tag tag-waiting"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> Waiting</span>
+                </div>
+                <h1 class="report-title">Waste Dumping at Greenwood Park</h1>
+                <div class="report-meta">
+                    <div class="report-meta-item">
+                        <i data-lucide="map-pin" style="width: 14px; height: 14px; color: var(--accent-green)"></i>
+                        Greenwood Park, District 12, Springfield
+                    </div>
+                    <div class="report-meta-item">
+                        <i data-lucide="navigation" style="width: 14px; height: 14px;"></i>
+                        39.7644° N, 86.1625° W <i data-lucide="copy" style="width: 12px; height: 12px; margin-left:4px; cursor:pointer;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="report-author-date">
+                <div>Reported on<br><span>May 31, 2025, 08:45 AM</span></div>
+                <div class="flex items-center gap-2 mt-2"><i data-lucide="user" style="width:14px; height:14px"></i> by <span>John Doe</span></div>
+            </div>
+        </div>
+
+        <div class="detail-grid">
+            <!-- Left Column -->
+            <div>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div class="card-header" style="margin-bottom: 12px;">
+                        <span class="section-title" style="margin:0;">Location</span>
+                    </div>
+                    <div id="map" class="map-container"></div>
+                    
+                    <div style="font-size: 11px; color: var(--text-muted); text-align: right; display:flex; justify-content:space-between;">
+                        <span></span>
+                        <span>© Mapbox © OpenStreetMap <a href="#" style="color:var(--text-muted); text-decoration:none;">Improve this map</a></span>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 16px;">
+                    <h3 class="section-title">Description</h3>
+                    <p class="description-text">
+                        Large pile of mixed waste dumped near the park entrance. It's been here for a few days and is causing bad smell and health concerns.
+                    </p>
+                    
+                    <h3 class="section-title">Photos</h3>
+                    <div class="photos-grid">
+                        <div class="photo-item">
+                            <img src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=200&h=200&fit=crop" alt="Waste photo 1">
+                            <i data-lucide="maximize-2" style="position:absolute; top:4px; right:4px; width:14px; height:14px; color:white; filter:drop-shadow(0 0 2px rgba(0,0,0,0.5)); cursor:pointer;"></i>
+                        </div>
+                        <div class="photo-item">
+                            <img src="https://images.unsplash.com/photo-1605600659873-d808a1d85834?w=200&h=200&fit=crop" alt="Waste photo 2">
+                        </div>
+                        <div class="photo-item">
+                            <img src="https://images.unsplash.com/photo-1595278069441-2f29f80164c4?w=200&h=200&fit=crop" alt="Waste photo 3">
+                        </div>
+                        <div class="add-photo">
+                            <i data-lucide="plus" style="width: 20px; height: 20px;"></i>
+                            Add Photo
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="section-title">Activity Timeline</h3>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-icon yellow"><i data-lucide="clock" style="width: 8px; height: 8px; color: #fff;"></i></div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">
+                                    <h4>Report submitted</h4>
+                                    <p>May 31, 2025, 08:45 AM</p>
+                                </div>
+                                <div class="timeline-user">John Doe</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-icon blue"><i data-lucide="user" style="width: 8px; height: 8px; color: #fff;"></i></div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">
+                                    <h4>Under review</h4>
+                                    <p>May 31, 2025, 09:15 AM</p>
+                                </div>
+                                <div class="timeline-user">Admin User</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-icon gray"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">
+                                    <h4>Status updated to Waiting</h4>
+                                    <p>May 31, 2025, 09:15 AM</p>
+                                </div>
+                                <div class="timeline-user">System</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="flex-col gap-4" style="gap: 16px;">
+                <div class="card">
+                    <h3 class="section-title">Update Status</h3>
+                    
+                    <div style="display:flex; gap: 12px; position:relative;">
+                        <!-- Custom track connecting nodes -->
+                        <div style="position:absolute; left:11px; top:12px; bottom:12px; width:2px; background:var(--border-color); z-index:0;"></div>
+                        
+                        <!-- Track Nodes -->
+                        <div style="display:flex; flex-direction:column; gap:40px; margin-top:12px; z-index:1;">
+                            <div style="width:24px; height:24px; border-radius:50%; background:var(--bg-deep); border:2px solid var(--accent-green); display:flex; align-items:center; justify-content:center;">
+                                <div style="width:10px; height:10px; border-radius:50%; background:var(--accent-green);"></div>
+                            </div>
+                            <div style="width:24px; height:24px; border-radius:50%; background:var(--bg-deep); border:2px solid var(--text-muted); display:flex; align-items:center; justify-content:center;"></div>
+                            <div style="width:24px; height:24px; border-radius:50%; background:var(--bg-deep); border:2px solid var(--text-muted); display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="check" style="width:12px; height:12px; color:var(--text-muted);"></i>
+                            </div>
+                        </div>
+
+                        <div class="status-control" style="flex-grow:1;">
+                            <div class="status-option active">
+                                <div class="status-option-header text-yellow">
+                                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i> Waiting
+                                </div>
+                                <div class="status-option-desc">Report has been received</div>
+                                <i data-lucide="check" class="status-check" style="width:14px; height:14px; color:var(--text-primary)"></i>
+                            </div>
+                            <div class="status-option">
+                                <div class="status-option-header text-blue">
+                                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Processing
+                                </div>
+                                <div class="status-option-desc">Report is being reviewed</div>
+                            </div>
+                            <div class="status-option">
+                                <div class="status-option-header text-green">
+                                    <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Completed
+                                </div>
+                                <div class="status-option-desc">Issue has been resolved</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="section-title">Report Details</h3>
+                    <div class="data-grid">
+                        <div class="data-row">
+                            <span class="data-label">Category</span>
+                            <span class="data-value"><span class="dot dot-completed"></span> Plastic</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Type</span>
+                            <span class="data-value">Illegal Dumping</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Priority</span>
+                            <span class="data-value"><span class="dot dot-waiting"></span> Medium</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Reported via</span>
+                            <span class="data-value">Mobile App</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Report ID</span>
+                            <span class="data-value">#RPT-1284</span>
+                        </div>
+                        <div class="data-row">
+                            <span class="data-label">Reported At</span>
+                            <span class="data-value">May 31, 2025, 08:45 AM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Screen toggling
+        function showDashboard() {
+            document.getElementById('screen-dashboard').style.display = 'flex';
+            document.getElementById('screen-detail').style.display = 'none';
+        }
+
+        function showDetail() {
+            document.getElementById('screen-dashboard').style.display = 'none';
+            document.getElementById('screen-detail').style.display = 'flex';
+            // Re-invalidate map size to render correctly when unhidden
+            setTimeout(() => { if(map) map.invalidateSize(); }, 100);
+        }
+
+        // --- Charts Initialization ---
+        
+        // Donut Chart
+        const donutCtx = document.getElementById('donutChart').getContext('2d');
+        new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Plastic', 'Organic', 'Paper', 'Glass', 'Metal'],
+                datasets: [{
+                    data: [540, 320, 192, 128, 104],
+                    backgroundColor: [
+                        '#22C55E', // Plastic
+                        '#4ADE80', // Organic
+                        '#3B82F6', // Paper
+                        '#A855F7', // Glass
+                        '#EAB308'  // Metal
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                cutout: '75%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + ' (' + Math.round(context.parsed / 1284 * 100) + '%)';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Line Chart
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        
+        // Custom gradient for the line
+        let gradient = lineCtx.createLinearGradient(0, 0, 0, 250);
+        gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+        gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: ['May 1', 'May 4', 'May 7', 'May 10', 'May 13', 'May 16', 'May 19', 'May 22', 'May 25', 'May 28', 'May 31'],
+                datasets: [
+                    {
+                        label: 'Reports',
+                        data: [60, 80, 110, 150, 120, 140, 160, 130, 150, 180, 200],
+                        borderColor: '#22C55E',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#22C55E',
+                        pointBorderColor: '#1E293B',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Resolved',
+                        data: [40, 60, 90, 120, 100, 110, 140, 110, 130, 150, 170],
+                        borderColor: '#334155',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'transparent',
+                        pointBorderColor: 'transparent',
+                        fill: false,
+                        tension: 0.4,
+                        hidden: false // Show slightly behind or lower
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 200,
+                        grid: {
+                            color: 'rgba(51, 65, 85, 0.3)',
+                            drawBorder: false,
+                        },
+                        ticks: { color: '#64748B', font: { size: 11 }, stepSize: 50 }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { color: '#64748B', font: { size: 11 }, maxTicksLimit: 7 }
+                    }
+                }
+            }
+        });
+
+        // --- Map Initialization ---
+        let map;
+        setTimeout(() => {
+            // Wait slightly for DOM to be ready
+            map = L.map('map', {
+                center: [39.7644, -86.1625],
+                zoom: 15,
+                zoomControl: false // Custom position if needed, or hide
+            });
+
+            // Add standard dark map tile layer (CartoDB Dark Matter is a good fit for this theme)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            L.control.zoom({ position: 'topright' }).addTo(map);
+
+            // Custom Leaf pin icon
+            const leafIcon = L.divIcon({
+                className: 'custom-pin',
+                html: `<div style="background:var(--accent-green); width:32px; height:32px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 8px rgba(0,0,0,0.3); border:2px solid white;">
+                         <div style="transform:rotate(45deg); width:12px; height:12px; background:white; border-radius:50%;"></div>
+                       </div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            L.marker([39.7644, -86.1625], { icon: leafIcon }).addTo(map);
+        }, 100);
+
+    </script>
+</body>
+</html>

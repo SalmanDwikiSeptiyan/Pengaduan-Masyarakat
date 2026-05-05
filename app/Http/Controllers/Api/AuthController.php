@@ -75,4 +75,44 @@ class AuthController extends Controller
             'message' => 'Logout berhasil',
         ]);
     }
+
+    /**
+     * POST /api/user/update
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name'             => 'sometimes|string|max:255',
+            'email'            => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
+            'current_password' => 'required_with:password|string',
+            'password'         => 'sometimes|string|min:8|confirmed',
+        ]);
+
+        // Verify current password if changing password
+        if ($request->filled('password')) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                throw ValidationException::withMessages([
+                    'current_password' => ['Password saat ini salah.'],
+                ]);
+            }
+            $user->password = Hash::make($request->password);
+        }
+
+        if ($request->filled('name')) {
+            $user->name = $request->name;
+        }
+
+        if ($request->filled('email')) {
+            $user->email = $request->email;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'user'    => $user,
+        ]);
+    }
 }
