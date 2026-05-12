@@ -11,6 +11,16 @@ use App\Http\Controllers\Api\NotificationController;
 | AUTH Routes
 |--------------------------------------------------------------------------
 */
+
+Route::get('/debug-storage', function () {
+    return response()->json([
+        'files_in_reports' => \Illuminate\Support\Facades\Storage::disk('public')->files('reports'),
+        'disk_root' => config('filesystems.disks.public.root'),
+        'storage_path' => storage_path('app/public'),
+        'symlink_exists' => file_exists(public_path('storage')),
+    ]);
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 
