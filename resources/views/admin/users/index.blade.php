@@ -10,8 +10,8 @@
 
     .control-bar { display: flex; justify-content: flex-end; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-color); }
     .search-wrapper { position: relative; width: 350px; }
-    .search-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted); }
-    .search-input { width: 100%; background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 16px 10px 40px; border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s; font-family: inherit; }
+    .search-wrapper .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-muted); pointer-events: none; }
+    .search-input { width: 100%; background: rgba(30, 41, 59, 0.5); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 16px 10px 42px; border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s; font-family: inherit; }
     .search-input:focus { border-color: var(--text-muted); background: var(--bg-surface); }
     .search-input::placeholder { color: var(--text-muted); font-weight: 400; }
 
@@ -56,7 +56,7 @@
     <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-surface);">
         <div class="control-bar">
             <div class="search-wrapper">
-                <i data-lucide="search"></i>
+                <i data-lucide="search" class="search-icon"></i>
                 <input
                     type="text"
                     id="searchInput"
