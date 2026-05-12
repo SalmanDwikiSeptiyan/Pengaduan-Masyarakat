@@ -23,5 +23,14 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') !== 'local') {
             URL::forceScheme('https');
         }
+
+        // Auto-fix symlink for Railway ephemeral filesystem
+        if (!file_exists(public_path('storage'))) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
+            } catch (\Exception $e) {
+                // Ignore errors during boot
+            }
+        }
     }
 }
