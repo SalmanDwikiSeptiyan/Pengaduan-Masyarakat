@@ -122,7 +122,9 @@
     {{-- ═══ TOP NAVBAR ═══ --}}
     <nav class="top-nav no-print">
         <div class="nav-brand">
-            <div class="nav-logo">T</div>
+            <div class="nav-logo" style="background: transparent;">
+                <img src="{{ asset('img/trashpot-logo.jpg') }}" alt="Logo" style="width: 100%; height: 100%; border-radius: 6px; object-fit: contain;">
+            </div>
             <div class="nav-brand-text">
                 <h1>TRASHPOT</h1>
                 <p>Waste Community Reporting System</p>
@@ -180,7 +182,9 @@
 
             {{-- Kop Surat --}}
             <div class="kop">
-                <div class="kop-logo">T</div>
+                <div class="kop-logo" style="background: transparent;">
+                    <img src="{{ asset('img/trashpot-logo.jpg') }}" alt="Trashpot Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 10px;">
+                </div>
                 <div class="kop-text">
                     <h2>TRASHPOT</h2>
                     <p>Sistem Pengaduan Sampah Masyarakat</p>
