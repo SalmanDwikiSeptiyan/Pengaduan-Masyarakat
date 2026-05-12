@@ -21,6 +21,25 @@ Route::get('/debug-storage', function () {
     ]);
 });
 
+Route::get('/fix-storage', function () {
+    try {
+        if (file_exists(public_path('storage'))) {
+            unlink(public_path('storage'));
+        }
+        \Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Storage link created successfully!',
+            'output' => \Illuminate\Support\Facades\Artisan::output()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 
